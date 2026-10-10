@@ -1,0 +1,13 @@
+const KEY='wc_confessions_v1';
+const seed=[{id:1,text:'I have a huge crush on someone in my class and I see them every day but I’m too scared to talk to them.',category:'Crush',status:'approved',created:Date.now()-7200000},{id:2,text:'Some college days are stressful, but the random conversations in the hallway make them worth it.',category:'College Life',status:'approved',created:Date.now()-14400000}];
+function get(){try{return JSON.parse(localStorage.getItem(KEY))||seed}catch{return seed}}
+function save(x){localStorage.setItem(KEY,JSON.stringify(x))}
+let data=get(); if(!localStorage.getItem(KEY)) save(data);
+const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+function renderFeed(){const el=document.getElementById('feed');if(!el)return;const approved=get().filter(x=>x.status==='approved').sort((a,b)=>b.id-a.id);el.innerHTML=approved.map(x=>`<article class="confession"><span class="num">CONFESSION #${String(x.id).padStart(3,'0')}</span><p>${esc(x.text)}</p><div class="meta">Anonymous · ${esc(x.category)}</div></article>`).join('')||'<div class="card">No confessions yet. Be the first.</div>'}
+function renderAdmin(){const el=document.getElementById('pending');if(!el)return;const pending=get().filter(x=>x.status==='pending').sort((a,b)=>a.id-b.id);el.innerHTML=pending.length?pending.map(x=>`<div class="adminitem"><span class="num">#${String(x.id).padStart(3,'0')} · ${esc(x.category)}</span><p>${esc(x.text)}</p><div class="actions"><button class="btn approve" onclick="approve(${x.id})">✓ Approve & Post</button><button class="btn reject" onclick="rejectPost(${x.id})">Reject</button></div></div>`).join(''):'<div class="card"><b>No pending submissions.</b><p class="muted">Approve a submission and, in production, this action will call your Instagram publishing backend.</p></div>'}
+function approve(id){const x=get();const i=x.findIndex(a=>a.id===id);if(i<0)return;x[i].status='approved';x[i].instagramStatus='ready_to_publish';save(x);renderAdmin();alert('Approved. Instagram publishing is ready to connect to your Meta/Instagram backend.');renderFeed()}
+function rejectPost(id){const x=get();const i=x.findIndex(a=>a.id===id);if(i<0)return;x[i].status='rejected';save(x);renderAdmin()}
+window.approve=approve;window.rejectPost=rejectPost;
+const form=document.getElementById('submitForm');if(form)form.addEventListener('submit',e=>{e.preventDefault();const x=get();const next=Math.max(0,...x.map(a=>a.id))+1;x.push({id:next,text:document.getElementById('text').value.trim(),category:document.getElementById('category').value,status:'pending',created:Date.now()});save(x);form.reset();document.getElementById('success').classList.remove('hidden')});
+renderFeed();renderAdmin();
